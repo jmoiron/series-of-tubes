@@ -1,4 +1,4 @@
-package com.example.examplemod;
+package net.jmoiron.sot;
 
 import com.gregtechceu.gtceu.api.addon.GTAddon;
 import com.gregtechceu.gtceu.api.addon.IGTAddon;
@@ -9,10 +9,10 @@ import java.util.function.Consumer;
 
 @SuppressWarnings("unused")
 @GTAddon
-public class ExampleGTAddon implements IGTAddon {
+public class SeriesOfTubesAddon implements IGTAddon {
     @Override
     public GTRegistrate getRegistrate() {
-        return ExampleMod.EXAMPLE_REGISTRATE;
+        return SeriesOfTubesMod.EXAMPLE_REGISTRATE;
     }
 
     @Override
@@ -22,7 +22,7 @@ public class ExampleGTAddon implements IGTAddon {
 
     @Override
     public String addonModId() {
-        return ExampleMod.MOD_ID;
+        return SeriesOfTubesMod.MOD_ID;
     }
 
     @Override
@@ -34,7 +34,7 @@ public class ExampleGTAddon implements IGTAddon {
     public void addRecipes(Consumer<FinishedRecipe> provider) {
         //CustomRecipes.init(provider);
     }
-    
+
     // If you have custom ingredient types, uncomment this & change to match your capability.
     // KubeJS WILL REMOVE YOUR RECIPES IF THESE ARE NOT REGISTERED.
     /*
