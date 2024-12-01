@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 public class SeriesOfTubesAddon implements IGTAddon {
     @Override
     public GTRegistrate getRegistrate() {
-        return SeriesOfTubesMod.EXAMPLE_REGISTRATE;
+        return SeriesOfTubesMod.REGISTRATE;
     }
 
     @Override

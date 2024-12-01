@@ -23,7 +23,7 @@ import org.apache.logging.log4j.Logger;
 public class SeriesOfTubesMod {
     public static final String MOD_ID = "sot";
     public static final Logger LOGGER = LogManager.getLogger();
-    public static GTRegistrate EXAMPLE_REGISTRATE = GTRegistrate.create(SeriesOfTubesMod.MOD_ID);
+    public static GTRegistrate REGISTRATE = GTRegistrate.create(SeriesOfTubesMod.MOD_ID);
 
     public SeriesOfTubesMod() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -44,13 +44,15 @@ public class SeriesOfTubesMod {
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            /*
             LOGGER.info("Hello from common setup! This is *after* registries are done, so we can do this:");
             LOGGER.info("Look, I found a {}!", Items.DIAMOND);
+            */
         });
     }
 
     private void clientSetup(final FMLClientSetupEvent event) {
-        LOGGER.info("Hey, we're on Minecraft version {}!", Minecraft.getInstance().getLaunchedVersion());
+        //LOGGER.info("Hey, we're on Minecraft version {}!", Minecraft.getInstance().getLaunchedVersion());
     }
 
     // You MUST have this for custom materials.
