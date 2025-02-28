@@ -1,4 +1,4 @@
-package net.jmoiron.sot.common;
+package net.jmoiron.chubes.common;
 
 import net.minecraft.util.StringRepresentable;
 

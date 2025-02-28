@@ -1,4 +1,4 @@
-package net.jmoiron.sot;
+package net.jmoiron.chubes;
 
 import com.gregtechceu.gtceu.api.GTCEuAPI;
 import com.gregtechceu.gtceu.api.data.chemical.material.event.MaterialEvent;
@@ -7,9 +7,9 @@ import com.gregtechceu.gtceu.api.data.chemical.material.event.PostMaterialEvent;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate;
-import net.minecraft.client.Minecraft;
+
+import net.jmoiron.chubes.common.data.ChubesBlocks;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Items;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -19,13 +19,17 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod(SeriesOfTubesMod.MOD_ID)
-public class SeriesOfTubesMod {
-    public static final String MOD_ID = "sot";
-    public static final Logger LOGGER = LogManager.getLogger();
-    public static GTRegistrate REGISTRATE = GTRegistrate.create(SeriesOfTubesMod.MOD_ID);
+@Mod(ChubesMod.MOD_ID)
+public class ChubesMod {
+    public static final String MOD_ID = "chubes";
+    public static final String NAME = "Chubes";
 
-    public SeriesOfTubesMod() {
+    public static final Logger LOGGER = LogManager.getLogger();
+    public static GTRegistrate REGISTRATE = GTRegistrate.create(ChubesMod.MOD_ID);
+
+    public ChubesMod() {
+        ChubesMod.init();
+
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         modEventBus.addListener(this::commonSetup);
@@ -40,6 +44,11 @@ public class SeriesOfTubesMod {
         // If we want to use annotations to register event listeners,
         // we need to register our object like this!
         MinecraftForge.EVENT_BUS.register(this);
+    }
+
+    public static void init() {
+        // initialization
+        ChubesBlocks.init();
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
@@ -58,7 +67,7 @@ public class SeriesOfTubesMod {
     // You MUST have this for custom materials.
     // Remember to register them not to GT's namespace, but your own.
     private void addMaterialRegistries(MaterialRegistryEvent event) {
-        GTCEuAPI.materialManager.createRegistry(SeriesOfTubesMod.MOD_ID);
+        GTCEuAPI.materialManager.createRegistry(ChubesMod.MOD_ID);
     }
 
     // As well as this.

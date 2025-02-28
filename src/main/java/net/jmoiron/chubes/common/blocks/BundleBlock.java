@@ -1,15 +1,13 @@
-package net.jmoiron.sot.common.blocks;
+package net.jmoiron.chubes.common.blocks;
 
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import net.jmoiron.sot.common.ConnectionType;
+import net.jmoiron.chubes.common.ConnectionType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;

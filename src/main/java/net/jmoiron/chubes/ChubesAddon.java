@@ -1,4 +1,4 @@
-package net.jmoiron.sot;
+package net.jmoiron.chubes;
 
 import com.gregtechceu.gtceu.api.addon.GTAddon;
 import com.gregtechceu.gtceu.api.addon.IGTAddon;
@@ -9,10 +9,10 @@ import java.util.function.Consumer;
 
 @SuppressWarnings("unused")
 @GTAddon
-public class SeriesOfTubesAddon implements IGTAddon {
+public class ChubesAddon implements IGTAddon {
     @Override
     public GTRegistrate getRegistrate() {
-        return SeriesOfTubesMod.REGISTRATE;
+        return ChubesMod.REGISTRATE;
     }
 
     @Override
@@ -22,7 +22,7 @@ public class SeriesOfTubesAddon implements IGTAddon {
 
     @Override
     public String addonModId() {
-        return SeriesOfTubesMod.MOD_ID;
+        return ChubesMod.MOD_ID;
     }
 
     @Override
