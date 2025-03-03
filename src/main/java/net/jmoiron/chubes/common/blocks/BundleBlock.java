@@ -4,7 +4,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import net.jmoiron.chubes.common.ConnectionType;
+import net.jmoiron.chubes.common.ConnectorType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -56,16 +56,16 @@ public class BundleBlock extends BaseEntityBlock implements SimpleWaterloggedBlo
     // use the block state to pull out the pre-calculated shape from cache.
     private void initShapeCache() {
         if (shapeCache == null) {
-            int len = ConnectionType.TYPES.length;
+            int len = ConnectorType.TYPES.length;
             int cacheSize = len*len*len*len*len*len; // 6 directions, type^6 configurations
 
             shapeCache = new VoxelShape[cacheSize];
-            for (ConnectionType north : ConnectionType.TYPES) {
-                for (ConnectionType south : ConnectionType.TYPES) {
-                    for (ConnectionType west : ConnectionType.TYPES) {
-                        for (ConnectionType east : ConnectionType.TYPES) {
-                            for (ConnectionType down : ConnectionType.TYPES) {
-                                for (ConnectionType up : ConnectionType.TYPES) {
+            for (ConnectorType north : ConnectorType.TYPES) {
+                for (ConnectorType south : ConnectorType.TYPES) {
+                    for (ConnectorType west : ConnectorType.TYPES) {
+                        for (ConnectorType east : ConnectorType.TYPES) {
+                            for (ConnectorType down : ConnectorType.TYPES) {
+                                for (ConnectorType up : ConnectorType.TYPES) {
                                     int index = cacheIndex(north, south, west, east, down, up);
                                     shapeCache[index] = genVoxelShape(north, south, west, east, down, up);
                                 }
@@ -77,15 +77,15 @@ public class BundleBlock extends BaseEntityBlock implements SimpleWaterloggedBlo
         }
     }
 
-    private int cacheIndex(ConnectionType north, ConnectionType south, ConnectionType west, ConnectionType east, ConnectionType down, ConnectionType up) {
+    private int cacheIndex(ConnectorType north, ConnectorType south, ConnectorType west, ConnectorType east, ConnectorType down, ConnectorType up) {
         // NOTE: if this were calculated inside-out, the cache could be built off of
         // a simple incrementing index, which would be better for caches etc,
         // but we only build the cache once so it's probably fine.
-        int len = ConnectionType.TYPES.length;
+        int len = ConnectorType.TYPES.length;
         return ((((north.ordinal() * len + south.ordinal()) * len + west.ordinal()) * len + east.ordinal()) * len + down.ordinal()) * len + up.ordinal();
     }
 
-    private VoxelShape genVoxelShape(ConnectionType north, ConnectionType south, ConnectionType west, ConnectionType east, ConnectionType down, ConnectionType up) {
+    private VoxelShape genVoxelShape(ConnectorType north, ConnectorType south, ConnectorType west, ConnectorType east, ConnectorType down, ConnectorType up) {
         VoxelShape base = SHAPE_BUNDLE_BASE;
         base = combineShape(base, north, SHAPE_B_NORTH, SHAPE_C_NORTH);
         base = combineShape(base, south, SHAPE_B_SOUTH, SHAPE_C_SOUTH);
@@ -97,11 +97,11 @@ public class BundleBlock extends BaseEntityBlock implements SimpleWaterloggedBlo
     }
 
     // combineShape combines
-    private VoxelShape combineShape(VoxelShape shape, ConnectionType type, VoxelShape bundle, VoxelShape block) {
+    private VoxelShape combineShape(VoxelShape shape, ConnectorType type, VoxelShape bundle, VoxelShape block) {
         BiFunction<VoxelShape, VoxelShape, VoxelShape> union = (a, b) -> { return Shapes.join(a, b, BooleanOp.OR); };
-        if (type == ConnectionType.BUNDLE) {
+        if (type == ConnectorType.CABLE) {
             return union.apply(shape, bundle);
-        } else if (type == ConnectionType.BLOCK) {
+        } else if (type == ConnectorType.BLOCK) {
             return union.apply(shape, union.apply(bundle, block));
         } else {
             return shape;

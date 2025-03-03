@@ -1,13 +1,14 @@
 package net.jmoiron.chubes.common.blocks;
 
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.List;
@@ -15,9 +16,12 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import net.jmoiron.chubes.common.ConnectorType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 
@@ -84,8 +88,30 @@ public class ChubesCableBlock extends Block implements SimpleWaterloggedBlock {
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        // TODO: other cable shapes
-        return SHAPE_CABLE_NODE;
+        // TODO: pre-cache voxelshapes so we don't have to re-calculate all the time.
+
+        VoxelShape shape = SHAPE_CABLE_NODE;
+
+        if (state.getValue(NORTH)) {
+            shape = Shapes.join(shape, SHAPE_CABLE_NORTH, BooleanOp.OR);
+        }
+        if (state.getValue(SOUTH)) {
+            shape = Shapes.join(shape, SHAPE_CABLE_SOUTH, BooleanOp.OR);
+        }
+        if (state.getValue(WEST)) {
+            shape = Shapes.join(shape, SHAPE_CABLE_WEST, BooleanOp.OR);
+        }
+        if (state.getValue(EAST)) {
+            shape = Shapes.join(shape, SHAPE_CABLE_EAST, BooleanOp.OR);
+        }
+        if (state.getValue(UP)) {
+            shape = Shapes.join(shape, SHAPE_CABLE_UP, BooleanOp.OR);
+        }
+        if (state.getValue(DOWN)) {
+            shape = Shapes.join(shape, SHAPE_CABLE_DOWN, BooleanOp.OR);
+        }
+
+        return shape;
     }
 
     /*
@@ -96,6 +122,12 @@ public class ChubesCableBlock extends Block implements SimpleWaterloggedBlock {
     }
     */
 
+    @Nonnull
+    @Override
+    public BlockState updateShape(BlockState state, @Nonnull Direction direction, @Nonnull BlockState otherState,
+                                  @Nonnull LevelAccessor world, @Nonnull BlockPos current, @Nonnull BlockPos offset) {
+        return getConnectorState(world, current, state);
+    }
     // allow the block to drop itself when mined
     @Override
     public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
@@ -105,5 +137,26 @@ public class ChubesCableBlock extends Block implements SimpleWaterloggedBlock {
     @Override
     public RenderShape getRenderShape(BlockState state) {
         return super.getRenderShape(state);
+    }
+
+    public BlockState getConnectorState(LevelAccessor world, BlockPos pos, BlockState state) {
+        return state
+            .setValue(NORTH, shouldConnect(world, pos, Direction.NORTH))
+            .setValue(SOUTH, shouldConnect(world, pos, Direction.SOUTH))
+            .setValue(WEST, shouldConnect(world, pos, Direction.WEST))
+            .setValue(EAST, shouldConnect(world, pos, Direction.EAST))
+            .setValue(UP, shouldConnect(world, pos, Direction.UP))
+            .setValue(DOWN, shouldConnect(world, pos, Direction.DOWN));
+    }
+
+    // for a given world, position, & direction, this returns a ConnectorType, which
+    // indicates whether the cable should connect that block or not
+    protected Boolean shouldConnect(BlockGetter world, BlockPos pos, Direction facing) {
+        BlockPos otherPos = pos.relative(facing);
+        BlockState otherState = world.getBlockState(otherPos);
+        Block otherBlock = otherState.getBlock();
+
+        // only connect to other cables (for now)
+        return otherBlock instanceof ChubesCableBlock;
     }
 }

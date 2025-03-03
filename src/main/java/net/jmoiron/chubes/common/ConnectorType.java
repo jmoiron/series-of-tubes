@@ -2,12 +2,12 @@ package net.jmoiron.chubes.common;
 
 import net.minecraft.util.StringRepresentable;
 
-public enum ConnectionType implements StringRepresentable {
+public enum ConnectorType implements StringRepresentable {
     NONE,
-    BUNDLE,
+    CABLE,
     BLOCK;
 
-    public static final ConnectionType[] TYPES = values();
+    public static final ConnectorType[] TYPES = values();
 
     @Override
     public String getSerializedName() {
