@@ -5,27 +5,27 @@
     },
     {
       "when": {"north": "true"},
-      "apply": {"model": "chubes:block/cable_ext", "uvlock": false}
+      "apply": {"model": "chubes:block/cable_ext_cut", "uvlock": false}
     },
     {
       "when": {"south": "true"},
-      "apply": {"model": "chubes:block/cable_ext", "y": 180, "uvlock": false}
+      "apply": {"model": "chubes:block/cable_ext_cut", "y": 180, "uvlock": false}
     },
     {
       "when": {"east": "true"},
-      "apply": {"model": "chubes:block/cable_ext", "y": 90, "uvlock": false}
+      "apply": {"model": "chubes:block/cable_ext_cut", "y": 90, "uvlock": false}
     },
     {
       "when": {"west": "true"},
-      "apply": {"model": "chubes:block/cable_ext", "y": 270, "uvlock": false}
+      "apply": {"model": "chubes:block/cable_ext_cut", "y": 270, "uvlock": false}
     },
     {
       "when": {"down": "true"},
-      "apply": {"model": "chubes:block/cable_ext", "x": 90, "uvlock": false}
+      "apply": {"model": "chubes:block/cable_ext_cut", "x": 90, "uvlock": false}
     },
     {
       "when": {"up": "true"},
-      "apply": {"model": "chubes:block/cable_ext", "x": 270, "uvlock": false}
+      "apply": {"model": "chubes:block/cable_ext_cut", "x": 270, "uvlock": false}
     }
   ]
 }
