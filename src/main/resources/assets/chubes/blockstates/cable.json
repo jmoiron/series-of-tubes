@@ -4,27 +4,51 @@
       "apply": {"model": "chubes:block/cable"}
     },
     {
-      "when": {"north": "true"},
+      "when": {"north": "block"},
+      "apply": {"model": "chubes:block/cable_conn", "uvlock": false}
+    },
+    {
+      "when": {"north": "cable"},
       "apply": {"model": "chubes:block/cable_ext_cut", "uvlock": false}
     },
     {
-      "when": {"south": "true"},
+      "when": {"south": "block"},
+      "apply": {"model": "chubes:block/cable_conn", "y": 180, "uvlock": false}
+    },
+    {
+      "when": {"south": "cable"},
       "apply": {"model": "chubes:block/cable_ext_cut", "y": 180, "uvlock": false}
     },
     {
-      "when": {"east": "true"},
+      "when": {"east": "block"},
+      "apply": {"model": "chubes:block/cable_conn", "y": 90, "uvlock": false}
+    },
+    {
+      "when": {"east": "cable"},
       "apply": {"model": "chubes:block/cable_ext_cut", "y": 90, "uvlock": false}
     },
     {
-      "when": {"west": "true"},
+      "when": {"west": "block"},
+      "apply": {"model": "chubes:block/cable_conn", "y": 270, "uvlock": false}
+    },
+    {
+      "when": {"west": "cable"},
       "apply": {"model": "chubes:block/cable_ext_cut", "y": 270, "uvlock": false}
     },
     {
-      "when": {"down": "true"},
+      "when": {"down": "block"},
+      "apply": {"model": "chubes:block/cable_conn", "x": 90, "uvlock": false}
+    },
+    {
+      "when": {"down": "cable"},
       "apply": {"model": "chubes:block/cable_ext_cut", "x": 90, "uvlock": false}
     },
     {
-      "when": {"up": "true"},
+      "when": {"up": "block"},
+      "apply": {"model": "chubes:block/cable_conn", "x": 270, "uvlock": false}
+    },
+    {
+      "when": {"up": "cable"},
       "apply": {"model": "chubes:block/cable_ext_cut", "x": 270, "uvlock": false}
     }
   ]
