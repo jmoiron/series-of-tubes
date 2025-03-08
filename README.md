@@ -1,5 +1,3 @@
 # Series of Tubes
 
-Experiment in Item/Fluid/Power logistics.
-
-Intended as an addon for GregTech modern.
+Experiment in more dynamic Item/Fluid logistics for GregTech modern.
