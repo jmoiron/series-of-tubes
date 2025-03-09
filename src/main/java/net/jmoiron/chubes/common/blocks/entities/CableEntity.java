@@ -2,6 +2,7 @@ package net.jmoiron.chubes.common.blocks.entities;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,7 +47,7 @@ public class CableEntity extends BlockEntity {
             // {pipe,filter} for {item,fluid} per side
             Inventory = new ItemStackHandler(sides*4);
             // {item,fluid} channel per side
-            Channels = Arrays.asList(new Channel[sides*2]);
+            Channels = NonNullList.withSize(sides*2, Channel.NONE);
             // one per side
             forceDisconnected = NonNullList.withSize(sides, false);
         }

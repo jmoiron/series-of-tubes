@@ -28,12 +28,15 @@ import javax.annotation.Nullable;
 import net.jmoiron.chubes.common.blocks.entities.CableEntity;
 import net.jmoiron.chubes.common.data.ChubesBlocks;
 import net.jmoiron.chubes.common.data.ConnectorType;
+import net.jmoiron.chubes.common.lib.Debug;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -80,7 +83,7 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
     public static final VoxelShape SHAPE_CONN_WEST = union(SHAPE_CABLE_WEST, Block.box(0, 4, 4, 1, 12, 12));
     public static final VoxelShape SHAPE_CONN_EAST = union(SHAPE_CABLE_EAST, Block.box(15, 4, 4, 16, 12, 12));
     public static final VoxelShape SHAPE_CONN_DOWN = union(SHAPE_CABLE_DOWN, Block.box(4, 0, 4, 12, 1, 12));
-    public static final VoxelShape SHAPE_CONN_UP = union(SHAPE_CABLE_UP, Block.box(4, 12, 4, 12, 16, 12));
+    public static final VoxelShape SHAPE_CONN_UP = union(SHAPE_CABLE_UP, Block.box(4, 15, 4, 12, 16, 12));
 
     private static List<Triple<EnumProperty<ConnectorType>, VoxelShape, VoxelShape>> PROP_SHAPES = Arrays.asList(
         new ImmutableTriple<>(NORTH, SHAPE_CABLE_NORTH, SHAPE_CONN_NORTH),
@@ -154,13 +157,6 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
         return shape;
     }
 
-    // needsEntity returns true if this cable block needs an entity. Basically, if
-    // it is connected to an inventory, it needs an entity.
-    private Boolean needsEntity(BlockState state, BlockGetter level, BlockPos pos) {
-        return state.getProperties().stream()
-            .anyMatch(prop -> state.getValue(prop).equals(ConnectorType.BLOCK));
-    }
-
     /*
     @SuppressWarnings("deprecation")
     @Override
@@ -169,17 +165,23 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
     }
     */
 
+    // needsEntity returns true if this cable block needs an entity. If
+    // it is connected to an inventory, it needs an entity.
+    private Boolean needsEntity(BlockState state) {
+        return state.getProperties().stream()
+            .anyMatch(prop -> state.getValue(prop).equals(ConnectorType.BLOCK));
+    }
+
     @Nonnull
     @Override
     public BlockState updateShape(BlockState state, @Nonnull Direction direction, @Nonnull BlockState otherState,
                                   @Nonnull LevelAccessor world, @Nonnull BlockPos current, @Nonnull BlockPos offset) {
-        // since our blockstate updates our shape for us, updating the blockstate will
-        // ensure that the shape gets updated.
+        // since our blockstate defines the shape of the pipe, updating the
+        // blockstate updates the shape as well.
         return getState(world, current, state);
     }
 
     public BlockState getState(BlockGetter world, BlockPos pos, BlockState old) {
-
         var state = defaultBlockState()
             .setValue(NORTH, getConnector(world, pos, Direction.NORTH))
             .setValue(SOUTH, getConnector(world, pos, Direction.SOUTH))
@@ -189,15 +191,41 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
             .setValue(DOWN, getConnector(world, pos, Direction.DOWN))
             .setValue(WATERLOGGED, isWaterlogged(world, pos));
 
-        if (old == null && needsEntity(state, world, pos) || old != null && !old.getValue(HAS_ENTITY) && needsEntity(state, world, pos)) {
-            // create a new block entity
-            System.out.println("Need to create a new entry at " + pos.toString());
+        // if this block doesn't need an entity then we're good
+        if (old != null && old.getValue(HAS_ENTITY)) {
+            state = state.setValue(HAS_ENTITY, true);
         }
 
         return state;
     }
 
-    protected BlockEntity createBlockEntity(BlockState state, BlockPos pos) {
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+
+        // Check if a BlockEntity should be created
+        if (needsEntity(state) && !state.getValue(HAS_ENTITY)) {
+            BlockState newState = state.setValue(HAS_ENTITY, true);
+            level.setBlock(pos, newState, Block.UPDATE_ALL);
+            // trigger newBlockEntity
+            level.getBlockEntity(pos);
+        }
+    }
+
+
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        if (needsEntity(state) && state.getValue(HAS_ENTITY)) {
+            return createBlockEntity(pos, state);
+        }
+        return null;
+    }
+
+    protected BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+        System.out.println("Creating block entity for pos="+pos);
+        System.out.println("state=" + state);
+        Debug.printStack(10);
         return ChubesBlocks.CABLE_ENTITY.create(pos, state);
     }
 
@@ -246,13 +274,5 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
         }
 
         return ConnectorType.NONE;
-    }
-
-    @Nullable
-    @Override
-    public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-        // TODO: create a new block entity when this block is connected
-        // to another block that has an inventory.
-        return null;
     }
 }
