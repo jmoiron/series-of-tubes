@@ -3,6 +3,8 @@ package net.jmoiron.chubes.common.blocks;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
+import com.gregtechceu.gtceu.common.blockentity.CableBlockEntity;
+
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,9 +25,12 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import net.jmoiron.chubes.common.blocks.entities.CableEntity;
+import net.jmoiron.chubes.common.data.ChubesBlocks;
 import net.jmoiron.chubes.common.data.ConnectorType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -48,7 +53,8 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
     public static final EnumProperty<ConnectorType> DOWN = ctype("down");
     public static final EnumProperty<ConnectorType> UP = ctype("up");
 
-    // If a chubes cable is connected to
+    // If a chubes cable is an endpoint, then it needs an entity..
+    // HAS_ENTITY is a property that indicates that this cable has an entity.
     public static final BooleanProperty HAS_ENTITY = BooleanProperty.create("has_entity");
 
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
@@ -96,8 +102,6 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
                 .strength(1.0f)
         );
 
-        // at construction, a cable is not connected to anything and not waterlogged
-        // XXX: is this too many blockstates?
         registerDefaultState(
             stateDefinition.any()
                 .setValue(NORTH, ConnectorType.NONE)
@@ -106,6 +110,7 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
                 .setValue(EAST, ConnectorType.NONE)
                 .setValue(DOWN, ConnectorType.NONE)
                 .setValue(UP, ConnectorType.NONE)
+                .setValue(HAS_ENTITY, false)
                 .setValue(WATERLOGGED, false)
         );
     }
@@ -121,11 +126,15 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext pContext) {
-        var current = super.getStateForPlacement(pContext);
-        return getConnectorState(pContext.getLevel(), pContext.getClickedPos(), current);
+        return getState(pContext.getLevel(), pContext.getClickedPos(), null);
     }
 
     @Override
+    // getShape returns a VoxelShape which is what determines the outline
+    // you see in game that allows you to interact with the block. By making
+    // it roughly match the size and shape of the cable, the player can do
+    // things like stand on it at an appropriate height and interact with blocks
+    // that are behind the visible shape of the cable.
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         // TODO: pre-cache voxelshapes so we don't have to re-calculate all the time.
 
@@ -145,6 +154,13 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
         return shape;
     }
 
+    // needsEntity returns true if this cable block needs an entity. Basically, if
+    // it is connected to an inventory, it needs an entity.
+    private Boolean needsEntity(BlockState state, BlockGetter level, BlockPos pos) {
+        return state.getProperties().stream()
+            .anyMatch(prop -> state.getValue(prop).equals(ConnectorType.BLOCK));
+    }
+
     /*
     @SuppressWarnings("deprecation")
     @Override
@@ -157,7 +173,37 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
     @Override
     public BlockState updateShape(BlockState state, @Nonnull Direction direction, @Nonnull BlockState otherState,
                                   @Nonnull LevelAccessor world, @Nonnull BlockPos current, @Nonnull BlockPos offset) {
-        return getConnectorState(world, current, state);
+        // since our blockstate updates our shape for us, updating the blockstate will
+        // ensure that the shape gets updated.
+        return getState(world, current, state);
+    }
+
+    public BlockState getState(BlockGetter world, BlockPos pos, BlockState old) {
+
+        var state = defaultBlockState()
+            .setValue(NORTH, getConnector(world, pos, Direction.NORTH))
+            .setValue(SOUTH, getConnector(world, pos, Direction.SOUTH))
+            .setValue(WEST, getConnector(world, pos, Direction.WEST))
+            .setValue(EAST, getConnector(world, pos, Direction.EAST))
+            .setValue(UP, getConnector(world, pos, Direction.UP))
+            .setValue(DOWN, getConnector(world, pos, Direction.DOWN))
+            .setValue(WATERLOGGED, isWaterlogged(world, pos));
+
+        if (old == null && needsEntity(state, world, pos) || old != null && !old.getValue(HAS_ENTITY) && needsEntity(state, world, pos)) {
+            // create a new block entity
+            System.out.println("Need to create a new entry at " + pos.toString());
+        }
+
+        return state;
+    }
+
+    protected BlockEntity createBlockEntity(BlockState state, BlockPos pos) {
+        return ChubesBlocks.CABLE_ENTITY.create(pos, state);
+    }
+
+    private Boolean isWaterlogged(BlockGetter world, BlockPos pos) {
+        var fluidState = world.getFluidState(pos);
+        return fluidState.is(FluidTags.WATER) && fluidState.getAmount() == 8;
     }
 
     // allow the block to drop itself when mined
@@ -169,16 +215,6 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
     @Override
     public RenderShape getRenderShape(BlockState state) {
         return super.getRenderShape(state);
-    }
-
-    public BlockState getConnectorState(BlockGetter world, BlockPos pos, BlockState state) {
-        return state
-            .setValue(NORTH, getConnector(world, pos, Direction.NORTH))
-            .setValue(SOUTH, getConnector(world, pos, Direction.SOUTH))
-            .setValue(WEST, getConnector(world, pos, Direction.WEST))
-            .setValue(EAST, getConnector(world, pos, Direction.EAST))
-            .setValue(UP, getConnector(world, pos, Direction.UP))
-            .setValue(DOWN, getConnector(world, pos, Direction.DOWN));
     }
 
     // getConnector returns the connector type for the block in the direction of

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import net.jmoiron.chubes.common.data.Channel;
+import net.jmoiron.chubes.common.data.ChubesBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -50,6 +51,8 @@ public class CableEntity extends BlockEntity {
             forceDisconnected = NonNullList.withSize(sides, false);
         }
 
+        // getContainer returns a container with all of the items across all of
+        // this config's inventory slots.
         public SimpleContainer getContainer() {
             SimpleContainer container = new SimpleContainer(Inventory.getSlots());
             for (int i = 0; i<Inventory.getSlots(); i++){
@@ -67,6 +70,7 @@ public class CableEntity extends BlockEntity {
             pTag.put("forceDisconnected", new IntArrayTag(forceDisconnectedInts));
         }
 
+        // load configuration + inventory contents from nbt
         public void load(CompoundTag pTag) {
             Inventory.deserializeNBT(pTag);
 
@@ -84,10 +88,11 @@ public class CableEntity extends BlockEntity {
 
     protected static ConnectorConfig config;
 
-    public CableEntity(BlockPos pPos, BlockState pBlockState) {
-        super(null, pPos, pBlockState);
+    public CableEntity(BlockEntityType<?> in, BlockPos pos, BlockState state) {
+        super(in, pos, state);
         config = new ConnectorConfig();
     }
+
 
     // next three methods are needed for item handler, but I'm not sure
     // we need to expose the capability here, as I think it makes our
@@ -114,7 +119,7 @@ public class CableEntity extends BlockEntity {
 
 
     // when this cable is broken, it should drop all of the config ItemStacks
-    // in its container(s).
+    // in its configuration inventories.
     public void drops() {
         Containers.dropContents(this.level, this.worldPosition, config.getContainer());
     }
