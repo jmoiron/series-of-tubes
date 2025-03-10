@@ -4,6 +4,7 @@ import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
 import com.gregtechceu.gtceu.common.blockentity.CableBlockEntity;
+import com.lowdragmc.lowdraglib.gui.factory.BlockEntityUIFactory;
 
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -13,6 +14,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -31,8 +33,12 @@ import net.jmoiron.chubes.common.data.ConnectorType;
 import net.jmoiron.chubes.common.lib.Debug;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -228,6 +234,18 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
         Debug.printStack(10);
         return ChubesBlocks.CABLE_ENTITY.create(pos, state);
     }
+
+    @Override
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            BlockEntity blockEntity = world.getBlockEntity(pos);
+            if (blockEntity instanceof CableEntity) {
+                ((CableEntity) blockEntity).openCustomInventoryScreen(player);
+            }
+        }
+        return InteractionResult.SUCCESS;
+    }
+
 
     private Boolean isWaterlogged(BlockGetter world, BlockPos pos) {
         var fluidState = world.getFluidState(pos);

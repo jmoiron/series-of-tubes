@@ -1,5 +1,7 @@
 package net.jmoiron.chubes.common.blocks.entities;
 
+import java.io.DataInputStream;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,17 +10,32 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
+import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.gui.editor.data.UIProject;
+import com.lowdragmc.lowdraglib.gui.factory.BlockEntityUIFactory;
+import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
+import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
+import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+
+import net.jmoiron.chubes.ChubesMod;
 import net.jmoiron.chubes.common.data.Channel;
 import net.jmoiron.chubes.common.data.ChubesBlocks;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.Containers;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.HasCustomInventoryScreen;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -26,10 +43,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
-public class CableEntity extends BlockEntity {
+public class CableEntity extends BlockEntity implements HasCustomInventoryScreen, IUIHolder {
     // When a cable connects to a bock, it needs an entity because it will have
     // inventories and other data for its configuration
 
@@ -135,6 +154,74 @@ public class CableEntity extends BlockEntity {
     public void load(CompoundTag pTag) {
         super.load(pTag);
         config.load(pTag);
+    }
+
+    @Override
+    public void openCustomInventoryScreen(Player player) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            BlockEntityUIFactory.INSTANCE.openUI(this, serverPlayer);
+        }
+    }
+
+    private WidgetGroup createUIWidgetGroup() {
+        ResourceLocation uiFile = new ResourceLocation(ChubesMod.MOD_ID, "ui/connectorcfg.ui");
+        ResourceManager manager = null;
+
+        if (FMLEnvironment.dist.isClient()) {
+            manager = Minecraft.getInstance().getResourceManager();
+        } else if (ServerLifecycleHooks.getCurrentServer() != null) {
+            manager = ServerLifecycleHooks.getCurrentServer().getResourceManager();
+        } else {
+            System.out.println("Don't know how to load the UI resource");
+            return null;
+        }
+
+        CompoundTag uiDef;
+
+        try {
+            var stream = manager.getResourceOrThrow(uiFile).open();
+            var file = new DataInputStream(stream);
+            uiDef = NbtIo.read(file);
+        } catch (Exception e) {
+            System.out.println("Could not load resource " + uiFile);
+            return null;
+        }
+
+
+        try {
+            // creator caches the resources to speed up the creation process.
+            // you should better store it for the same project loading.
+            var creator = UIProject.loadUIFromTag(uiDef);
+            return creator.get();
+        } catch (Exception e) {
+            System.out.println("Could not create UI widget group: loading connectorcfg.ui failed.");
+            return null;
+        }
+
+    }
+
+    @Override
+    public ModularUI createUI(Player entityPlayer) {
+        return new ModularUI(createUIWidgetGroup(), this, entityPlayer);
+    }
+
+
+    @Override
+    public boolean isInvalid() {
+        return this.isRemoved();
+    }
+
+
+    @Override
+    public boolean isRemote() {
+        var level = this.getLevel();
+        return level == null ? LDLib.isRemote() : !level.isClientSide();
+    }
+
+
+    @Override
+    public void markAsDirty() {
+        this.setChanged();
     }
 
 }
