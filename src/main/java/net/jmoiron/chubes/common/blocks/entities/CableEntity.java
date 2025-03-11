@@ -16,8 +16,17 @@ import com.lowdragmc.lowdraglib.gui.factory.BlockEntityUIFactory;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.syncdata.IManaged;
+import com.lowdragmc.lowdraglib.syncdata.IManagedStorage;
+import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
+import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib.syncdata.blockentity.IAsyncAutoSyncBlockEntity;
+import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoPersistBlockEntity;
+import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
+import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 
 import net.jmoiron.chubes.ChubesMod;
+import net.jmoiron.chubes.common.client.gui.ConnectorConfigUI;
 import net.jmoiron.chubes.common.data.Channel;
 import net.jmoiron.chubes.common.data.ChubesBlocks;
 import net.minecraft.client.Minecraft;
@@ -27,11 +36,10 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.Containers;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.HasCustomInventoryScreen;
@@ -43,12 +51,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
-import net.minecraftforge.server.ServerLifecycleHooks;
 
-public class CableEntity extends BlockEntity implements HasCustomInventoryScreen, IUIHolder {
+public class CableEntity extends BlockEntity implements HasCustomInventoryScreen, IUIHolder, IAsyncAutoSyncBlockEntity, IAutoPersistBlockEntity, IManaged {
     // When a cable connects to a bock, it needs an entity because it will have
     // inventories and other data for its configuration
 
@@ -104,9 +110,13 @@ public class CableEntity extends BlockEntity implements HasCustomInventoryScreen
         }
     }
 
+    protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(CableEntity.class);
+    private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
+
     private LazyOptional<IItemHandler> lazyItemHandler = LazyOptional.empty();
 
-    protected static ConnectorConfig config;
+    public ConnectorConfig config;
+    public ConnectorConfigUI ui;
 
     public CableEntity(BlockEntityType<?> in, BlockPos pos, BlockState state) {
         super(in, pos, state);
@@ -163,46 +173,17 @@ public class CableEntity extends BlockEntity implements HasCustomInventoryScreen
         }
     }
 
-    private WidgetGroup createUIWidgetGroup() {
+    private WidgetGroup createWidgetGroup() {
         ResourceLocation uiFile = new ResourceLocation(ChubesMod.MOD_ID, "ui/connectorcfg.ui");
-        ResourceManager manager = null;
-
-        if (FMLEnvironment.dist.isClient()) {
-            manager = Minecraft.getInstance().getResourceManager();
-        } else if (ServerLifecycleHooks.getCurrentServer() != null) {
-            manager = ServerLifecycleHooks.getCurrentServer().getResourceManager();
-        } else {
-            System.out.println("Don't know how to load the UI resource");
-            return null;
-        }
-
-        CompoundTag uiDef;
-
-        try {
-            var stream = manager.getResourceOrThrow(uiFile).open();
-            var file = new DataInputStream(stream);
-            uiDef = NbtIo.read(file);
-        } catch (Exception e) {
-            System.out.println("Could not load resource " + uiFile);
-            return null;
-        }
-
-
-        try {
-            // creator caches the resources to speed up the creation process.
-            // you should better store it for the same project loading.
-            var creator = UIProject.loadUIFromTag(uiDef);
-            return creator.get();
-        } catch (Exception e) {
-            System.out.println("Could not create UI widget group: loading connectorcfg.ui failed.");
-            return null;
-        }
-
+        return ConnectorConfigUI.loadWidgetGroupFromLoc(uiFile);
     }
 
     @Override
     public ModularUI createUI(Player entityPlayer) {
-        return new ModularUI(createUIWidgetGroup(), this, entityPlayer);
+        var wg = this.createWidgetGroup();
+        var modularUI = new ModularUI(wg, this, entityPlayer);
+        this.ui = new ConnectorConfigUI(modularUI, this);
+        return modularUI;
     }
 
 
@@ -222,6 +203,31 @@ public class CableEntity extends BlockEntity implements HasCustomInventoryScreen
     @Override
     public void markAsDirty() {
         this.setChanged();
+    }
+
+
+    // Method overrides for LDLib auto sync storage
+    // https://low-drag-mc.github.io/LowDragMC-Doc/ldlib/SyncData/
+
+    @Override
+    public IManagedStorage getRootStorage() {
+        return getSyncStorage();
+    }
+
+    @Override
+    public IManagedStorage getSyncStorage() {
+        return syncStorage;
+    }
+
+
+    @Override
+    public ManagedFieldHolder getFieldHolder() {
+        return MANAGED_FIELD_HOLDER;
+    }
+
+    @Override
+    public void onChanged() {
+        setChanged();
     }
 
 }
