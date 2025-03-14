@@ -2,6 +2,8 @@ package net.jmoiron.chubes.common.lib;
 
 import java.util.Arrays;
 
+import com.lowdragmc.lowdraglib.gui.widget.Widget;
+
 public class Debug {
 
     public static StackTraceElement[] callStack(int depth) {
@@ -19,6 +21,13 @@ public class Debug {
         Arrays.stream(frames).forEach(frame -> {
             System.out.println("  > " + frame);
         });
+    }
+
+    public static String fmtWidgetData(Widget w) {
+        var id = w.getId();
+        var pos = w.getPosition();
+        var widgetType = w.getClass().getName();
+        return String.format("id=%s pos=%s widgetType=%s", id, pos.toString(), widgetType);
     }
 
 }

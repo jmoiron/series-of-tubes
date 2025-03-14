@@ -5,6 +5,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 import com.gregtechceu.gtceu.common.blockentity.CableBlockEntity;
 import com.lowdragmc.lowdraglib.gui.factory.BlockEntityUIFactory;
+import com.mojang.authlib.properties.Property;
 
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -161,6 +162,18 @@ public class CableBlock extends Block implements SimpleWaterloggedBlock, EntityB
         }
 
         return shape;
+    }
+
+    public static EnumProperty<ConnectorType> getProperty(Direction dir) {
+        return switch (dir) {
+            case NORTH -> NORTH;
+            case SOUTH -> SOUTH;
+            case EAST -> EAST;
+            case WEST -> WEST;
+            case UP -> UP;
+            case DOWN -> DOWN;
+            default -> NORTH;
+        };
     }
 
     /*

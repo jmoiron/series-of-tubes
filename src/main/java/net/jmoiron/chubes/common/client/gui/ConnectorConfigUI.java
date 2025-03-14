@@ -1,21 +1,53 @@
 package net.jmoiron.chubes.common.client.gui;
 
 import java.io.DataInputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.IntStream;
 
 import com.lowdragmc.lowdraglib.gui.editor.data.UIProject;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
+import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
+import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib.gui.texture.TextTexture.TextType;
+import com.lowdragmc.lowdraglib.gui.widget.TabButton;
+import com.lowdragmc.lowdraglib.gui.widget.TabContainer;
+import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 
+import net.jmoiron.chubes.common.blocks.CableBlock;
 import net.jmoiron.chubes.common.blocks.entities.CableEntity;
+import net.jmoiron.chubes.common.data.ConnectorType;
+import net.jmoiron.chubes.common.lib.Debug;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.server.ServerLifecycleHooks;
 
 public class ConnectorConfigUI {
+
+    public static final ResourceTexture TABS_LEFT = new ResourceTexture("ldlib:textures/gui/tabs_left.png");
+
+    public static final List<Direction> DIRECTIONS = Arrays.asList(
+        Direction.NORTH, Direction.SOUTH, Direction.EAST,
+        Direction.WEST, Direction.UP, Direction.DOWN
+    );
+
+    public static final List<ResourceTexture> TAB_TEXTURES = Arrays.asList(
+        TABS_LEFT.getSubTexture(0, 0, 0.5f, 1f / 3),
+        TABS_LEFT.getSubTexture(0.5f, 0, 0.5f, 1f / 3),
+        TABS_LEFT.getSubTexture(0, 1f / 3, 0.5f, 1f / 3),
+        TABS_LEFT.getSubTexture(0.5f, 1f / 3, 0.5f, 1f / 3)
+    );
 
     protected ModularUI ui;
     protected CableEntity ent;
@@ -23,6 +55,7 @@ public class ConnectorConfigUI {
     public ConnectorConfigUI(ModularUI ui, CableEntity ent) {
         this.ui = ui;
         this.ent = ent;
+        init();
     }
 
     public WidgetGroup root() {
@@ -51,4 +84,79 @@ public class ConnectorConfigUI {
             return null;
         }
     }
+
+    public void init() {
+        Widget tabContent = ui.getFirstWidgetById("tab_content");
+
+        if (tabContent == null) {
+            System.out.println("widget is null");
+            return;
+        }
+        if (!(tabContent instanceof TabContainer)) {
+            System.out.println("tab_content is not a WidgetGroup");
+            return;
+        }
+
+        TabContainer tc = (TabContainer)tabContent;
+        initTabTextures(tc);
+        printWidgetTree(tc, 0);
+    }
+
+    private void initTabTextures(TabContainer tc) {
+        for (int i=0; i<DIRECTIONS.size(); i++) {
+            Direction dir = DIRECTIONS.get(i);
+            System.out.println("pos="+i+" dir="+dir);
+            TabButton tab = (TabButton)tc.buttonGroup.widgets.get(i);
+
+            var abbr = dir.getName().substring(0, 1).toUpperCase();
+            var adjItemStack = getAdjacentStack(dir);
+            IGuiTexture tex;
+
+            if (adjItemStack.isEmpty()) {
+                tex = new TextTexture(abbr);
+            } else {
+                tex = new GuiTextureGroup(
+                    new ItemStackTexture(adjItemStack).scale(0.66f),
+                    new TextTexture(abbr).setDropShadow(true)
+                );
+            }
+
+            // top tab gets the first two TAB_TEXTURES, and subsequent ones
+            // get the subsequent TAB_TEXTURES.
+            int idx = i == 0 ? 0 : 2;
+            tab.setTexture(
+                new GuiTextureGroup(TAB_TEXTURES.get(idx), tex),
+                new GuiTextureGroup(TAB_TEXTURES.get(idx+1), tex)
+            );
+        }
+    }
+
+    private ItemStack getAdjacentStack(Direction dir) {
+        // if the cable does not have ConnectorType.BLOCK, then there's
+        // no reason to draw an icon.
+        var conType = ent.getBlockState().getValue(CableBlock.getProperty(dir));
+        if (conType != ConnectorType.BLOCK) {
+            return ItemStack.EMPTY;
+        }
+        var adjPos = ent.getBlockPos().relative(dir);
+        var adjState = ent.getLevel().getBlockState(adjPos);
+        return adjState.getBlock().getCloneItemStack(ent.getLevel(), adjPos, adjState);
+    }
+
+    public void printWidgetTree(Widget w, int depth) {
+        var indent = "  ".repeat(depth);
+        if (w instanceof TabContainer) {
+            System.out.printf("%s > TabContainer id=%s\n", indent, w.getId());
+            System.out.printf("%s > Buttons:\n", indent);
+            ((TabContainer)w).buttonGroup.widgets.stream().forEach(x -> printWidgetTree(x, depth+1));
+            System.out.printf("%s > Containers:\n", indent);
+            ((TabContainer)w).containerGroup.widgets.stream().forEach(x -> printWidgetTree(x, depth+1));
+        } if (w instanceof WidgetGroup) {
+            System.out.printf("%s > WidgetGroup id=%s\n", indent, w.getId());
+            ((WidgetGroup)w).widgets.stream().forEach(x -> printWidgetTree(x, depth+1));
+        } else {
+            System.out.printf("%s > %s\n", indent, Debug.fmtWidgetData(w));
+        }
+    }
+
 }
