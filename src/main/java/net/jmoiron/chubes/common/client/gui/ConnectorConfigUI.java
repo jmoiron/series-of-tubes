@@ -116,7 +116,7 @@ public class ConnectorConfigUI {
                 tex = new TextTexture(abbr);
             } else {
                 tex = new GuiTextureGroup(
-                    new ItemStackTexture(adjItemStack).scale(0.66f),
+                    new ItemStackTexture(adjItemStack).scale(0.50f),
                     new TextTexture(abbr).setDropShadow(true)
                 );
             }
