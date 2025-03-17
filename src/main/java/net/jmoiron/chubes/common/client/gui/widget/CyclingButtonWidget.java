@@ -70,9 +70,11 @@ public class CyclingButtonWidget extends Widget implements IConfigurableWidget {
     }
 
     public void setState(int newState) {
+        /*
         if (state == newState) {
             return;
         }
+        */
 
         if (supplier != null) {
             System.out.println("SetState > Supplier wasn't null somehow");
