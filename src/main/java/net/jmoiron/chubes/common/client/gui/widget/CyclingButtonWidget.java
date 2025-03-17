@@ -26,8 +26,8 @@ import net.minecraft.network.FriendlyByteBuf;
 // easier to just create the widgets in Java as it is a bit fidgety to get all of
 // the sizing and spacing right in the editor.
 
-// @LDLRegister(name = "cycling_button", group = "widget.basic")
-public class CyclingButtonWidget extends Widget implements IConfigurableWidget {
+@LDLRegister(name="cyclingButton", group="widget.basic", modID="chubes")
+public class CyclingButtonWidget extends Widget {
 
     protected IGuiTexture baseTexture;
     protected IGuiTexture hoverTexture;
@@ -42,14 +42,6 @@ public class CyclingButtonWidget extends Widget implements IConfigurableWidget {
 
     public CyclingButtonWidget() {
         this(0, 0, 18, 18);
-    }
-
-    @Override
-    public void initTemplate() {
-        this.addState(
-            TextureUtil.getTextureForItem("minecraft:stone"),
-            TextureUtil.getTextureForItem("minecraft:dirt")
-        );
     }
 
     public CyclingButtonWidget(int x, int y, int h, int w) {

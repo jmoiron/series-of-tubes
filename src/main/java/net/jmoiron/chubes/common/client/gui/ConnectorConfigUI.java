@@ -100,33 +100,31 @@ public class ConnectorConfigUI {
         }
 
         TabContainer tc = (TabContainer)tabContent;
+        System.out.println("mainGroup");
+        printWidgetTree(ui.mainGroup, 0);
+
         initTabTextures(tc);
         initCyclingButton();
-        printWidgetTree(tc, 0);
     }
 
     private void initCyclingButton() {
-        var cbw = new CyclingButtonWidget()
-            .addState(TextureUtil.getTextureForItem("gtceu:copper_ingot"))
-            .addState(TextureUtil.getTextureForItem("minecraft:water_bucket"))
+        var cbw = new CyclingButtonWidget(0, -25, 20, 20)
+            .addState(TextureUtil.getTextureForItem("gtceu:steel_ingot").scale(0.66f))
+            .addState(TextureUtil.getTextureForItem("minecraft:water_bucket").scale(0.66f))
             .setCallback(i -> {
                 System.out.println("State set to " + i);
             });
 
-        cbw.setSelfPosition(28, -23);
-
-        ui.mainGroup.addWidget(cbw);
-
-
-        /*
-        replaceWidget(
-            ui.getFirstWidgetById("cyclebutton"),
-            cbw);
-        */
+        replaceWidget(ui.getFirstWidgetById("cyclebutton"), cbw);
     }
 
     private void replaceWidget(Widget out, Widget in) {
-        in.setSelfPosition(out.getSelfPosition());
+        System.out.printf("out.pos=%s out.selfPos=%s in.pos=%s in.selfPos=%s\n",
+            out.getPosition(),
+            out.getSelfPosition(),
+            in.getPosition(),
+            in.getSelfPosition());
+
         ui.mainGroup.removeWidget(out);
         ui.mainGroup.addWidget(in);
     }
