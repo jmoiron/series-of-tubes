@@ -23,6 +23,7 @@ import net.jmoiron.chubes.common.blocks.CableBlock;
 import net.jmoiron.chubes.common.blocks.entities.CableEntity;
 import net.jmoiron.chubes.common.data.ConnectorType;
 import net.jmoiron.chubes.common.lib.Debug;
+import net.jmoiron.chubes.common.client.gui.widget.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -31,6 +32,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.server.ServerLifecycleHooks;
 
 public class ConnectorConfigUI {
@@ -99,7 +101,34 @@ public class ConnectorConfigUI {
 
         TabContainer tc = (TabContainer)tabContent;
         initTabTextures(tc);
+        initCyclingButton();
         printWidgetTree(tc, 0);
+    }
+
+    private void initCyclingButton() {
+        var cbw = new CyclingButtonWidget()
+            .addState(TextureUtil.getTextureForItem("gtceu:copper_ingot"))
+            .addState(TextureUtil.getTextureForItem("minecraft:water_bucket"))
+            .setCallback(i -> {
+                System.out.println("State set to " + i);
+            });
+
+        cbw.setSelfPosition(28, -23);
+
+        ui.mainGroup.addWidget(cbw);
+
+
+        /*
+        replaceWidget(
+            ui.getFirstWidgetById("cyclebutton"),
+            cbw);
+        */
+    }
+
+    private void replaceWidget(Widget out, Widget in) {
+        in.setSelfPosition(out.getSelfPosition());
+        ui.mainGroup.removeWidget(out);
+        ui.mainGroup.addWidget(in);
     }
 
     private void initTabTextures(TabContainer tc) {
