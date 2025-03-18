@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture.TextType;
+import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.TabButton;
 import com.lowdragmc.lowdraglib.gui.widget.TabContainer;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
@@ -25,6 +26,7 @@ import net.jmoiron.chubes.common.data.ConnectorType;
 import net.jmoiron.chubes.common.lib.Debug;
 import net.jmoiron.chubes.common.client.gui.widget.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
@@ -58,6 +60,10 @@ public class ConnectorConfigUI {
         this.ui = ui;
         this.ent = ent;
         init();
+    }
+
+    private static void log(String str) {
+        System.out.println("<client="+FMLEnvironment.dist.isClient()+"> "+str);
     }
 
     public WidgetGroup root() {
@@ -101,10 +107,14 @@ public class ConnectorConfigUI {
 
         TabContainer tc = (TabContainer)tabContent;
         System.out.println("mainGroup");
-        printWidgetTree(ui.mainGroup, 0);
+        //printWidgetTree(ui.mainGroup, 0);
 
         initTabTextures(tc);
         initCyclingButton();
+        if (FMLEnvironment.dist.isClient()) {
+            initSlotTextures();
+        }
+
     }
 
     private void initCyclingButton() {
@@ -112,21 +122,32 @@ public class ConnectorConfigUI {
             .addState(TextureUtil.getTextureForItem("gtceu:steel_ingot").scale(0.66f))
             .addState(TextureUtil.getTextureForItem("minecraft:water_bucket").scale(0.66f))
             .setCallback(i -> {
-                System.out.println("State set to " + i);
+                log("State set to " + i);
             });
 
         replaceWidget(ui.getFirstWidgetById("cyclebutton"), cbw);
     }
 
-    private void replaceWidget(Widget out, Widget in) {
-        System.out.printf("out.pos=%s out.selfPos=%s in.pos=%s in.selfPos=%s\n",
-            out.getPosition(),
-            out.getSelfPosition(),
-            in.getPosition(),
-            in.getSelfPosition());
+    private void initSlotTextures() {
+        var itemPipe = (SlotWidget)ui.getFirstWidgetById("item_pipe");
+        var fluidPipe = (SlotWidget)ui.getFirstWidgetById("fluid_pipe");
 
-        ui.mainGroup.removeWidget(out);
-        ui.mainGroup.addWidget(in);
+        var pipeSilk = TextureUtil
+            .getSilkScreenTextureForItem("gtceu:stainless_steel_normal_fluid_pipe")
+            .scale(0.90f);
+
+        // steel_normal_fluid_pipe")
+
+        var itemSilk = TextureUtil.getSilkScreenTextureForItem("gtceu:steel_ingot").scale(0.9f);
+        var fluidSilk = TextureUtil.getSilkScreenTextureForItem("minecraft:water_bucket").scale(0.9f);
+
+        itemPipe.setBackground(
+            new GuiTextureGroup(itemPipe.ITEM_SLOT_TEXTURE, pipeSilk)
+        );
+
+        fluidPipe.setBackground(
+            new GuiTextureGroup(fluidPipe.ITEM_SLOT_TEXTURE, fluidSilk)
+        );
     }
 
     private void initTabTextures(TabContainer tc) {
@@ -157,6 +178,18 @@ public class ConnectorConfigUI {
             );
         }
     }
+
+    private void replaceWidget(Widget out, Widget in) {
+        log(String.format("out.pos=%s out.selfPos=%s in.pos=%s in.selfPos=%s",
+            out.getPosition(),
+            out.getSelfPosition(),
+            in.getPosition(),
+            in.getSelfPosition()));
+
+        ui.mainGroup.removeWidget(out);
+        ui.mainGroup.addWidget(in);
+    }
+
 
     private ItemStack getAdjacentStack(Direction dir) {
         // if the cable does not have ConnectorType.BLOCK, then there's
