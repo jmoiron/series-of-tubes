@@ -13,6 +13,7 @@ import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
 
 import net.jmoiron.chubes.ChubesMod;
 import net.minecraft.client.Minecraft;
@@ -29,6 +30,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -118,9 +120,16 @@ public class TextureUtil {
      */
     public static BufferedImage applySilkscreenEffect(ItemStack itemStack) {
         // Get the item's texture
-        NativeImage texture = renderItemTexture(itemStack);
+        NativeImage texture = ItemStackRenderer.getGuiTexture(itemStack);
+        // NativeImage texture = renderItemTexture(itemStack);
         if (texture == null) {
             return null; // Texture not found
+        }
+
+        try {
+            texture.writeToFile(new File(itemStack.getDisplayName().getString()+"-normal.png"));
+        } catch (Exception e) {
+            System.out.println("could not write texture to file");
         }
 
         // Convert NativeImage to BufferedImage for easier processing
@@ -167,62 +176,102 @@ public class TextureUtil {
 
     private static NativeImage _drawItemStack(ItemStack itemStack) {
         var mc = Minecraft.getInstance();
-        var graphics = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-        NativeImage nativeImage = new NativeImage(TEXTURE_SIZE, TEXTURE_SIZE, false);
-        RenderTarget frameBuffer = new MainTarget(TEXTURE_SIZE, TEXTURE_SIZE);
 
-        frameBuffer.setClearColor(0, 0, 0, 0);
-        frameBuffer.clear(Minecraft.ON_OSX);
+        /*
+        var frameBuffer = new MainTarget(TEXTURE_SIZE, TEXTURE_SIZE);
 
         frameBuffer.bindWrite(true);
+        frameBuffer.setClearColor(0, 0, 0, 0);
+        frameBuffer.clear(Minecraft.ON_OSX);
+        */
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.depthMask(true);
+        // do we need a new buffer source?
+        var bufSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+        var graphics = new GuiGraphics(mc, bufSource);
 
+        var poseStack = new PoseStack();
+        var itemRenderer = mc.getItemRenderer();
 
-        graphics.pose().pushPose();
-        graphics.pose().translate(0, 0, 232);
-        graphics.renderItem(itemStack, 0, 0);
-        // graphics.renderItemDecorations(mc.font, itemStack, 0, 0, null);
-        graphics.pose().popPose();
+        // figure out something about the model
+        // I think if it's not 3d we can use the simpler renderer below
+        var displayName = itemStack.getDisplayName().toString();
+        var model = itemRenderer.getModel(itemStack, mc.level, null, 0);
+        if (model.isCustomRenderer()) {
+            System.out.println(displayName+" custom");
+        } else if (model.usesBlockLight()) {
+            System.out.println(displayName+" uses block light");
+        } else if (!model.isGui3d()) {
+            // the model is a 3d block so we can use our simpler routine
+            return null;
+        } else {
+            System.out.println(displayName+" no block light");
+        }
 
-        RenderSystem.enableBlend();
-        RenderSystem.disableDepthTest();
+        poseStack.pushPose();
+        poseStack.translate(TEXTURE_SIZE/2.0, TEXTURE_SIZE/2.0, 150.0);
+        poseStack.scale(16f, -16f, 16f);
 
-        frameBuffer.bindRead();
-        nativeImage.downloadTexture(0, false);
-        frameBuffer.unbindRead();
-        frameBuffer.unbindWrite();
-        frameBuffer.destroyBuffers();
+        itemRenderer.render(
+            itemStack,
+            ItemDisplayContext.GUI,
+            false,
+            poseStack,
+            graphics.bufferSource(),
+            0xF000F0,
+            OverlayTexture.NO_OVERLAY,
+            model
+        );
 
-        return nativeImage;
+        bufSource.endBatch();
+        graphics.flush();
+
+        var img = new NativeImage(TEXTURE_SIZE, TEXTURE_SIZE, false);
+        //frameBuffer.bindRead();
+        img.downloadTexture(0, false);
+        //frameBuffer.unbindRead();
+        //frameBuffer.unbindWrite();
+        //frameBuffer.destroyBuffers();
+
+        return img;
     }
 
     private static NativeImage _renderItemTexture(ItemStack itemStack) {
 
         NativeImage nativeImage = new NativeImage(TEXTURE_SIZE, TEXTURE_SIZE, false);
         Minecraft minecraft = Minecraft.getInstance();
+
+
         // MainTarget frameBuffer = new MainTarget(TEXTURE_SIZE, TEXTURE_SIZE);
+        MainTarget frameBuffer = new MainTarget(TEXTURE_SIZE, TEXTURE_SIZE);
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+
+        frameBuffer.setClearColor(0, 0, 0, 0);
+        frameBuffer.clear(Minecraft.ON_OSX);
+
+        frameBuffer.bindWrite(true);
 
 
-        RenderTarget frameBuffer = new TextureTarget(TEXTURE_SIZE, TEXTURE_SIZE, false, Minecraft.ON_OSX);
         PoseStack poseStack = new PoseStack();
         poseStack.pushPose();
-        // poseStack.mulPoseMatrix((new Matrix4f()).scaling(1.0F, -1.0F, 1.0F));
-		poseStack.scale(16.0F, -16.0F, 16.0F);
+        //poseStack.mulPoseMatrix((new Matrix4f()).scaling(1.0F, -1.0F, 1.0F));
+		//poseStack.scale(16.0F, -16.0F, 16.0F);
 
 
         MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
         ItemRenderer itemRenderer = minecraft.getItemRenderer();
+
         BakedModel bakedModel = itemRenderer.getModel(itemStack, null, null, 0);
 
         GuiGraphics guiGraphics = new GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
 
         frameBuffer.bindWrite(true);
+
         guiGraphics.renderFakeItem(itemStack, 0, 0);
 
-        /*
 
+        /*
         // Render the item as in the inventory
         itemRenderer.render(
             itemStack,
@@ -234,9 +283,10 @@ public class TextureUtil {
             OverlayTexture.NO_OVERLAY,
             bakedModel
         );
+        */
+
         poseStack.popPose();
         bufferSource.endBatch(); // Flush the render buffer
-        */
 
         frameBuffer.bindRead();
         nativeImage.downloadTexture(0, false);
@@ -244,29 +294,14 @@ public class TextureUtil {
         frameBuffer.unbindWrite();
         frameBuffer.destroyBuffers();
 
+        try {
+            nativeImage.writeToFile(new File("tmp.png"));
+        } catch (Exception e) {
+            System.out.println("could not write texture to file");
+        }
+
         return nativeImage;
 
-    }
-
-    /**
-     * Retrieves the texture of an ItemStack as a NativeImage.
-     *
-     * @param itemStack The ItemStack to get the texture for.
-     * @return The texture as a NativeImage, or null if not found.
-     */
-    private static NativeImage getItemTexture(ItemStack itemStack) {
-        try {
-            return Minecraft.getInstance()
-                .getItemRenderer()
-                .getItemModelShaper()
-                .getItemModel(itemStack)
-                .getParticleIcon()
-                .contents()
-                .getOriginalImage();
-
-        } catch (NullPointerException e) {
-            return null;
-        }
     }
 
     private static BufferedImage applySilkscreenEffect(BufferedImage image) {
